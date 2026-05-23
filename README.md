@@ -14,6 +14,10 @@
 
 ---
 
+<p align="center">
+  <a href="https://linnps.github.io/ml-06-rnn-lstm-timeseries/"><img src="https://img.shields.io/badge/View_Live_Dashboard-0E2841?style=for-the-badge&amp;logo=githubpages&amp;logoColor=white" alt="View live dashboard"></a>
+</p>
+
 ## At a glance
 
 > Build a time series from known parts — sinusoidal seasonality, piecewise-linear trend, AR(1) noise, one regime shift — and forecast the held-out tail four ways: naive, seasonal naive, LSTM with fresh context at every step, and LSTM running free on its own predictions.
