@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML 06 · RNN / LSTM Time Series — Dashboard</title>
+<style>
+  :root{
+    --navy:#0E2841; --navy2:#14385B; --navy3:#1C4A75;
+    --orange:#ED7D31; --orange2:#F4A26B;
+    --blue:#9DC3E6; --bg:#EEF1F4; --card:#FFFFFF;
+    --text:#1A2733; --muted:#6B7B8C; --line:#E2E7EC;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+  /* ---- sidebar ---- */
+  .sidebar{width:210px;flex-shrink:0;background:var(--navy);color:#fff;
+           display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{padding:22px 20px 18px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .brand .n{font-size:12px;letter-spacing:2px;color:var(--orange);font-weight:700}
+  .brand .t{font-size:17px;font-weight:700;margin-top:4px;line-height:1.25}
+  nav{padding:10px 0;flex:1}
+  nav a{display:flex;align-items:center;gap:10px;padding:13px 20px;color:#C5D2DE;
+        cursor:pointer;font-size:14px;font-weight:600;border-left:3px solid transparent;
+        user-select:none;transition:background .12s}
+  nav a:hover{background:rgba(255,255,255,.05);color:#fff}
+  nav a.active{background:var(--orange);color:#fff;border-left-color:#fff}
+  nav a .ic{font-size:16px;width:18px;text-align:center}
+  .side-foot{padding:16px 20px;font-size:11px;color:#7E93A8;border-top:1px solid rgba(255,255,255,.08)}
+  .side-foot a{color:var(--blue);text-decoration:none}
+  /* ---- main ---- */
+  .main{flex:1;padding:26px 30px 50px 30px;max-width:1180px}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;
+          border-bottom:2px solid var(--line);padding-bottom:16px;margin-bottom:22px}
+  .topbar h1{font-size:25px;font-weight:800;color:var(--navy)}
+  .topbar .sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .topbar .meta{font-size:12px;color:var(--muted);text-align:right;line-height:1.7}
+  .topbar .meta b{color:var(--navy)}
+  /* ---- panels ---- */
+  .panel{display:none;animation:fade .2s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);
+            margin:26px 0 12px 0;font-weight:700}
+  .panel h2:first-child{margin-top:0}
+  /* ---- KPI cards ---- */
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .kpi{border-radius:8px;padding:18px 16px;text-align:center;color:#fff;
+       box-shadow:0 1px 3px rgba(14,40,65,.12)}
+  .kpi .v{font-size:30px;font-weight:800;line-height:1}
+  .kpi .l{font-size:12.5px;font-weight:600;margin-top:8px;opacity:.92}
+  .kpi .s{font-size:11px;margin-top:5px;opacity:.8}
+  .kpi.navy{background:var(--navy)} .kpi.orange{background:var(--orange)}
+  .kpi.blue{background:var(--blue);color:var(--navy)}
+  /* ---- cards ---- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;
+        margin-top:14px;box-shadow:0 1px 2px rgba(14,40,65,.05)}
+  .card h3{font-size:15px;color:var(--navy);font-weight:700}
+  .card .cap{font-size:12.5px;color:var(--muted);margin:4px 0 10px 0}
+  .card img{width:100%;border:1px solid var(--line);border-radius:5px;margin-top:6px}
+  /* ---- table ---- */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;text-align:center;border-bottom:1px solid var(--line)}
+  th{background:var(--navy);color:#fff;font-weight:600;font-size:12.5px}
+  th:first-child,td:first-child{text-align:left}
+  tbody tr:nth-child(even){background:#F6F8FA}
+  .pill{display:inline-block;padding:3px 9px;border-radius:11px;font-weight:700;font-size:12.5px;color:#fff}
+  .p-navy{background:var(--navy)} .p-orange{background:var(--orange)}
+  .p-blue{background:var(--blue);color:var(--navy)} .p-gray{background:#9AA8B5}
+  .legend{font-size:12px;color:var(--muted);margin-top:9px}
+  .note{background:#FBF3EC;border-left:3px solid var(--orange);padding:11px 14px;border-radius:0 6px 6px 0;
+        font-size:13.5px;line-height:1.6;margin-top:14px}
+  pre{background:var(--navy);color:#E7EEF5;padding:14px 16px;border-radius:7px;overflow:auto;
+      font-size:12.5px;line-height:1.6;margin-top:10px;font-family:"SF Mono",Consolas,monospace}
+  pre .c{color:#7E9CB8}
+  code{background:#E7ECF1;padding:1px 5px;border-radius:3px;font-size:12.5px;
+       font-family:"SF Mono",Consolas,monospace}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:780px){.kpis{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}
+    .sidebar{width:64px}.brand .t,nav a span.tx,.side-foot{display:none}}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand"><div class="n">ML · 06</div><div class="t">RNN / LSTM Time Series</div></div>
+  <nav>
+    <a data-p="overview" class="active"><span class="ic">▣</span><span class="tx">Overview</span></a>
+    <a data-p="charts"><span class="ic">▤</span><span class="tx">Charts</span></a>
+    <a data-p="validation"><span class="ic">✓</span><span class="tx">Validation</span></a>
+    <a data-p="reproduce"><span class="ic">⚙</span><span class="tx">Reproduce</span></a>
+  </nav>
+  <div class="side-foot">Part of a 10-project ML portfolio<br><a href="https://github.com/linnps/ml-06-rnn-lstm-timeseries">View on GitHub →</a></div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <h1>RNN / LSTM Time Series — and Why Multi-Step is Hard</h1>
+      <div class="sub">LSTM one-step + free-run vs. naive baselines · synthetic series with known generative process</div>
+    </div>
+    <div class="meta">DATASET: <b>1,500 steps · synthetic</b><br>Season period <b>36</b> · AR(1) φ = <b>0.55</b><br>85 / 15 train-test split · <b>seed 42</b></div>
+  </div>
+
+  <!-- ===================== OVERVIEW ===================== -->
+  <section class="panel active" id="overview">
+    <div class="kpis">
+      <div class="kpi blue"><div class="v">0.5008</div><div class="l">LSTM One-Step RMSE</div><div class="s">Best — beats both baselines</div></div>
+      <div class="kpi navy"><div class="v">0.7364</div><div class="l">Seasonal Naive RMSE</div><div class="s">Competitive baseline (period = 36)</div></div>
+      <div class="kpi orange"><div class="v">2.4033</div><div class="l">LSTM Free-Run RMSE</div><div class="s">Worst — error compounds over 225 steps</div></div>
+    </div>
+
+    <h2>Forecast scorecard</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Method</th><th>RMSE</th><th>MAE</th></tr></thead>
+        <tbody>
+          <tr><td><b>Naive</b> <small>(last value)</small></td><td><span class="pill p-orange">1.9421</span></td><td><span class="pill p-orange">1.6108</span></td></tr>
+          <tr><td><b>Seasonal naive</b> <small>(period = 36)</small></td><td><span class="pill p-gray">0.7364</span></td><td><span class="pill p-gray">0.5995</span></td></tr>
+          <tr><td><b>LSTM (one-step)</b></td><td><span class="pill p-navy">0.5008</span></td><td><span class="pill p-navy">0.4081</span></td></tr>
+          <tr><td><b>LSTM (free-run)</b></td><td><span class="pill p-orange">2.4033</span></td><td><span class="pill p-orange">1.9716</span></td></tr>
+        </tbody>
+      </table>
+      <div class="legend">● navy = best in column &nbsp; ● orange = worst / notably bad &nbsp; ● gray = neutral baseline &nbsp;·&nbsp; values from <code>results/metrics.json</code></div>
+    </div>
+
+    <div class="note"><b>Headline finding:</b> the same LSTM is <i>the best</i> and <i>the worst</i> method here, depending on how you ask it to forecast. With actual history at every step (one-step) it cleanly beats both naive baselines (RMSE 0.501 vs. 0.736). Asked to roll forward 225 steps on its own predictions (free-run), the small per-step errors compound into a forecast that drifts off in completely the wrong direction (RMSE 2.403 — worse than seasonal naive). This split is the single most underappreciated thing about deep-learning forecasting.</div>
+  </section>
+
+  <!-- ===================== CHARTS ===================== -->
+  <section class="panel" id="charts">
+    <h2>Visual diagnostics</h2>
+    <div class="card"><h3>1 · The series — and what's inside it</h3><div class="cap">Top: full 1,500-step series, blue = train (85%), red = test (15%). Bottom: the four generative components plotted separately — sinusoidal seasonality, piecewise-linear trend, AR(1) noise, and the regime-shift step.</div><img src="assets/01_series.png" alt="series components"></div>
+    <div class="card"><h3>2 · Forecasts on the test segment</h3><div class="cap">Four lines on top of the actual (gray): Naive (flat line), Seasonal naive (copies one cycle ago), LSTM one-step (tracks closely), LSTM free-run (starts plausibly, then drifts). The visual is the lesson.</div><img src="assets/02_forecasts.png" alt="forecasts on test segment"></div>
+    <div class="grid2">
+      <div class="card"><h3>3 · Forecast accuracy</h3><div class="cap">RMSE and MAE both rank identically: LSTM one-step &lt; Seasonal naive &lt; Naive ≈ LSTM free-run. The 4× gap on the same model is the practical takeaway.</div><img src="assets/03_metrics.png" alt="forecast accuracy metrics"></div>
+      <div class="card"><h3>4 · Training dynamics</h3><div class="cap">Training MSE drops from ~1.9 to ~0.2 over 12 epochs. The plateau at ~0.20 matches the AR(1) noise variance (σ² = 0.16) — the LSTM has saturated the recoverable information.</div><img src="assets/04_training.png" alt="training loss curve"></div>
+    </div>
+  </section>
+
+  <!-- ===================== VALIDATION ===================== -->
+  <section class="panel" id="validation">
+    <h2>Metric definitions</h2>
+    <div class="card">
+      <h3>Metrics — computed on the 225-step held-out test segment (steps 1,275 – 1,499)</h3>
+      <div class="cap">No MAPE is computed because y(t) passes through zero (sinusoidal component), making percent errors undefined at certain timesteps.</div>
+      <table>
+        <thead><tr><th>Metric</th><th>Definition</th><th>How to read it</th></tr></thead>
+        <tbody>
+          <tr><td><b>RMSE</b></td><td>√mean squared error</td><td>Typical error in units of y. Penalizes large misses more than MAE. An LSTM at RMSE ≈ 0.5 has nearly saturated what is recoverable given AR(1) noise σ = 0.4.</td></tr>
+          <tr><td><b>MAE</b></td><td>mean absolute error</td><td>Median-ish error magnitude, less sensitive to outliers. LSTM at MAE 0.408 is essentially at the AR(1) σ = 0.4 floor.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>One-step vs. free-run evaluation</h2>
+    <div class="card">
+      <h3>Two distinct evaluation modes</h3>
+      <table>
+        <thead><tr><th>Mode</th><th>Context used</th><th>What it reveals</th></tr></thead>
+        <tbody>
+          <tr><td><b>One-step</b></td><td>Actual series values y[t−72 : t] at every test step</td><td>Fair evaluation for a deployed model that receives real data each tick</td></tr>
+          <tr><td><b>Free-run</b></td><td>Model's own previous predictions for all 225 steps</td><td>Error compounding under autoregressive feedback — the multi-step failure mode</td></tr>
+        </tbody>
+      </table>
+      <div class="note" style="margin-top:8px">The LSTM one-step forecast (RMSE 0.501) beats seasonal naive (RMSE 0.736). The LSTM free-run (RMSE 2.403) does not — it is worse than <i>both</i> baselines, which is the intended lesson about distribution shift and error compounding.</div>
+    </div>
+
+    <h2>Full results</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Method</th><th>Test RMSE</th><th>Test MAE</th></tr></thead>
+        <tbody>
+          <tr><td>Naive (last value)</td><td>1.9421</td><td>1.6108</td></tr>
+          <tr><td>Seasonal naive (period = 36)</td><td>0.7364</td><td>0.5995</td></tr>
+          <tr><td><b>LSTM (one-step)</b></td><td><b>0.5008</b></td><td><b>0.4081</b></td></tr>
+          <tr><td>LSTM (free-run)</td><td>2.4033</td><td>1.9716</td></tr>
+        </tbody>
+      </table>
+      <div class="legend">Exact values from <code>results/metrics.json</code>, regenerated on every <code>python train.py</code>. Bold = best in column. <b>Seed caveat:</b> "LSTM one-step wins" is stable; the exact third-decimal values are seed-dependent. The robust finding is the <i>direction</i> of the comparison (LSTM one-step &gt; seasonal naive; free-run degrades severely).</div>
+    </div>
+  </section>
+
+  <!-- ===================== REPRODUCE ===================== -->
+  <section class="panel" id="reproduce">
+    <h2>Run it yourself</h2>
+    <div class="card">
+      <pre><span class="c"># 1. environment</span>
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r requirements.txt
+
+<span class="c"># 2. generate the synthetic dataset (deterministic, seed 42)</span>
+python generate_data.py
+
+<span class="c"># 3. train, evaluate, render the dashboard figures</span>
+python train.py</pre>
+      <div class="cap" style="margin-top:10px">Total wall-time: under 30 seconds on CPU. Produces the four PNGs in <code>assets/</code> and the metric summary in <code>results/metrics.json</code>.</div>
+    </div>
+    <h2>Tweak the difficulty</h2>
+    <div class="card">
+      <pre>DataConfig(
+    n_steps=1500,
+    season_period=36,
+    season_amp=1.5,
+    trend_slope=0.002,
+    trend_break_at=0.55,       <span class="c"># where slope flips sign</span>
+    ar1_phi=0.55, ar1_sigma=0.4,
+    regime_shift_at=0.72,
+    regime_shift_size=1.2,
+    seed=42,
+)</pre>
+      <div class="cap" style="margin-top:10px">Crank <code>ar1_sigma</code> up to 1.5 to make noise drown the signal, or set <code>season_period=240</code> to test how well a 72-step context window can still pick up a 240-step cycle (it can't — that's a context-window failure mode).</div>
+    </div>
+  </section>
+</main>
+
+<script>
+  document.querySelectorAll('.sidebar nav a').forEach(function(a){
+    a.addEventListener('click',function(){
+      document.querySelectorAll('.sidebar nav a').forEach(function(x){x.classList.remove('active')});
+      document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
+      a.classList.add('active');
+      document.getElementById(a.dataset.p).classList.add('active');
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+</script>
+</body>
+</html>
