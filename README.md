@@ -18,32 +18,12 @@
 
 > Build a time series from known parts — sinusoidal seasonality, piecewise-linear trend, AR(1) noise, one regime shift — and forecast the held-out tail four ways: naive, seasonal naive, LSTM with fresh context at every step, and LSTM running free on its own predictions.
 
-<table>
-<tr>
-<td align="center" width="33%">
-<sub>LSTM (one-step)</sub><br>
-<b style="font-size:1.5em; color:#3B6EA8;">RMSE 0.501</b><br>
-<sub>best — beats both baselines</sub>
-</td>
-<td align="center" width="33%">
-<sub>Seasonal naive</sub><br>
-<b style="font-size:1.5em; color:#7A7A7A;">RMSE 0.736</b><br>
-<sub>strong baseline (period = 36)</sub>
-</td>
-<td align="center" width="33%">
-<sub>LSTM (free-run)</sub><br>
-<b style="font-size:1.5em; color:#C04040;">RMSE 2.403</b><br>
-<sub>error compounds over 225 steps</sub>
-</td>
-</tr>
-</table>
-
-| Method | RMSE | MAE | Setup |
-|---|---:|---:|---|
-| Naive (last-value) | 1.942 | 1.611 | predict y[t] = y[t−1] |
-| Seasonal naive | 0.736 | 0.599 | predict y[t] = y[t−36] |
-| **LSTM (one-step, with fresh context)** | **0.501** | **0.408** | re-feed actual y at every step |
-| LSTM (free-running rollout) | 2.403 | 1.972 | feed own predictions back into context |
+<p align="center">
+  <img src="https://img.shields.io/badge/LSTM_One--Step_RMSE-0.5008-3B6EA8?style=for-the-badge" alt="LSTM One-Step RMSE 0.5008">
+  <img src="https://img.shields.io/badge/Seasonal_Naive_RMSE-0.7364-7A7A7A?style=for-the-badge" alt="Seasonal Naive RMSE 0.7364">
+  <img src="https://img.shields.io/badge/LSTM_Free--Run_RMSE-2.4033-C04040?style=for-the-badge" alt="LSTM Free-Run RMSE 2.4033">
+</p>
+<p align="center"><sub>LSTM one-step (blue) beats both baselines &nbsp;·&nbsp; Seasonal naive (gray) = the competitive floor &nbsp;·&nbsp; LSTM free-run (red) loses to seasonal naive — error compounds over 225 steps</sub></p>
 
 <sub>**Headline finding:** the same LSTM is *the best* and *the worst* method here, depending on how you ask it to forecast. With actual history at every step it cleanly beats both naive baselines. Asked to roll forward 225 steps on its own predictions, the small per-step errors compound into a forecast that drifts off in completely the wrong direction. This split is the single most underappreciated thing about deep-learning forecasting.</sub>
 
@@ -128,6 +108,34 @@ The series is split **chronologically** — no shuffling of the time axis:
 ---
 
 ## Dashboard
+
+### Forecast scorecard
+
+<table>
+<tr><th align="left">Method</th><th>RMSE</th><th>MAE</th></tr>
+<tr>
+  <td><b>Naive</b> <sub>(last value)</sub></td>
+  <td align="center"><img src="https://img.shields.io/badge/1.9421-C04040?style=flat-square" alt="1.9421"></td>
+  <td align="center"><img src="https://img.shields.io/badge/1.6108-C04040?style=flat-square" alt="1.6108"></td>
+</tr>
+<tr>
+  <td><b>Seasonal naive</b> <sub>(period = 36)</sub></td>
+  <td align="center"><img src="https://img.shields.io/badge/0.7364-7A7A7A?style=flat-square" alt="0.7364"></td>
+  <td align="center"><img src="https://img.shields.io/badge/0.5995-7A7A7A?style=flat-square" alt="0.5995"></td>
+</tr>
+<tr>
+  <td><b>LSTM (one-step)</b></td>
+  <td align="center"><img src="https://img.shields.io/badge/0.5008-3B6EA8?style=flat-square" alt="0.5008 best"></td>
+  <td align="center"><img src="https://img.shields.io/badge/0.4081-3B6EA8?style=flat-square" alt="0.4081 best"></td>
+</tr>
+<tr>
+  <td><b>LSTM (free-run)</b></td>
+  <td align="center"><img src="https://img.shields.io/badge/2.4033-C04040?style=flat-square" alt="2.4033 worst"></td>
+  <td align="center"><img src="https://img.shields.io/badge/1.9716-C04040?style=flat-square" alt="1.9716 worst"></td>
+</tr>
+</table>
+
+<sub>Lower is better &nbsp;·&nbsp; Blue = best in column (LSTM one-step) &nbsp;·&nbsp; Red = worst (Naive RMSE / LSTM free-run) &nbsp;·&nbsp; Honest finding: free-run RMSE 2.4033 is worse than seasonal naive 0.7364 — error compounds over 225 steps &nbsp;·&nbsp; values from <code>results/metrics.json</code></sub>
 
 ### 1. The series — and what's inside it
 
